@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Monitoring & Maintenance Peralatan Lab</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <div id="toast" class="fixed top-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg z-50 transform translate-x-80 transition-transform duration-300 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check"></i> <span id="toastMsg">Data berhasil disimpan!</span>
+    </div>
+
+    <div id="halaman-login" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 px-4">
+        <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl space-y-6 relative border border-gray-100">
+            
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-xs">
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+                <h2 class="text-2xl font-black text-gray-800 tracking-tight">Sistem Monitoring Lab</h2>
+                <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Kelompok 8 • PVTE UNTIRTA 2024</p>
+            </div>
+
+            <div id="error-login" class="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-lg text-xs font-semibold hidden flex items-center gap-2 animate-pulse">
+                <i class="fa-solid fa-triangle-exclamation"></i> Username atau Password salah! coba lagi.
+            </div>
+
+            <form id="form-login" onsubmit="prosesLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Username Admin</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            <i class="fa-solid fa-user text-sm"></i>
+                        </span>
+                        <input type="text" id="username" required class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition" placeholder="Masukkan username">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            <i class="fa-solid fa-lock text-sm"></i>
+                        </span>
+                        <input type="password" id="password" required class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition" placeholder="••••••••">
+                    </div>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm py-3 rounded-xl transition shadow-md shadow-teal-600/20 flex items-center justify-center gap-2 cursor-pointer">
+                        Masuk ke Dashboard <i class="fa-solid fa-arrow-right-to-bracket text-xs"></i>
+                    </button>
+                </div>
+            </form>
+
+            <div class="text-center text-[10px] text-gray-400 pt-2 border-t border-gray-100">
+                Sistem Manajemen Laboratorium &copy; 2026
+            </div>
+        </div>
+    </div>
+
+    <div id="halaman-dashboard" class="flex flex-1 overflow-hidden opacity-0 transition-opacity duration-500 pointer-events-none">
+        
+        <div class="w-64 bg-slate-900 text-white flex flex-col justify-between hidden md:flex">
+            <div>
+                <div class="p-5 flex items-center gap-3 bg-slate-950">
+                    <i class="fa-solid fa-microchip text-teal-400 text-2xl"></i>
+                    <div>
+                        <h1 class="font-bold text-sm leading-tight">LAB MONITORING</h1>
+                        <p class="text-xs text-gray-400">Sistem Kelompok 8 • 2024</p>
+                    </div>
+                </div>
+                <nav class="p-4 space-y-1 text-sm">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 bg-teal-600 text-white rounded-lg transition text-left font-medium cursor-pointer">
+                        <i class="fa-solid fa-chart-pie w-5"></i> Dashboard Utama
+                    </button>
+                    <button onclick="switchTab('input-data')" id="nav-input-data" class="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-slate-800 hover:text-white rounded-lg transition text-left cursor-pointer">
+                        <i class="fa-solid fa-square-plus w-5"></i> Form Input Alat
+                    </button>
+                    <button onclick="switchTab('sop-log')" id="nav-sop-log" class="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-slate-800 hover:text-white rounded-lg transition text-left cursor-pointer">
+                        <i class="fa-solid fa-clipboard-list w-5"></i> Jadwal Pemeliharaan
+                    </button>
+                </nav>
+            </div>
+            <div class="p-4 border-t border-slate-800">
+                <button onclick="prosesLogout()" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-rose-900 text-gray-300 hover:text-white py-2 rounded-lg text-xs transition cursor-pointer font-semibold">
+                    <i class="fa-solid fa-power-off"></i> Keluar Sistem
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col overflow-y-auto">
+            
+            <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-xs">
+                <h2 id="page-title" class="text-xl font-bold text-gray-800">Dashboard Utama</h2>
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-gray-700">Daffa Abdillah Rizal</p>
+                        <p class="text-xs text-emerald-600"><i class="fa-solid fa-circle text-[6px] mr-1"></i> Admin Aktif</p>
+                    </div>
+                    <div class="w-10 h-10 bg-teal-600 text-white rounded-full flex items-center justify-center font-bold">DA</div>
+                </div>
+            </header>
+
+            <main id="tab-dashboard" class="p-6 space-y-6 max-w-7xl w-full mx-auto tab-content">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Peralatan</p>
+                            <h3 id="stat-total" class="text-3xl font-bold mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-toolbox"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Kondisi Baik</p>
+                            <h3 id="stat-baik" class="text-3xl font-bold mt-1 text-emerald-600">0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-circle-check"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Butuh Perbaikan</p>
+                            <h3 id="stat-perbaikan" class="text-3xl font-bold mt-1 text-amber-500">0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Rusak Berat</p>
+                            <h3 id="stat-rusak" class="text-3xl font-bold mt-1 text-rose-600">0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-circle-xmark"></i></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs lg:col-span-2">
+                        <h4 class="font-bold text-gray-800 mb-4">Grafik Rasio Pemeliharaan Alat</h4>
+                        <div class="h-64"><canvas id="chartBatang"></canvas></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
+                        <h4 class="font-bold text-gray-800 mb-4">Status Kumulatif (%)</h4>
+                        <div class="h-64 flex items-center justify-center"><canvas id="chartDonat"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+                    <div class="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+                        <h4 class="font-bold text-gray-800">Daftar Peralatan & Log Monitoring</h4>
+                        <button onclick="switchTab('input-data')" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition cursor-pointer">
+                            <i class="fa-solid fa-plus mr-1"></i> Input Data Baru
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-600">
+                            <thead class="bg-gray-100 text-gray-700 text-xs uppercase font-semibold border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3">Kode QR / ID</th>
+                                    <th class="px-6 py-3">Nama Alat</th>
+                                    <th class="px-6 py-3">Kategori Lab</th>
+                                    <th class="px-6 py-3">Tanggal Input</th>
+                                    <th class="px-6 py-3">Kondisi</th>
+                                    <th class="px-6 py-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-alat" class="divide-y divide-gray-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+
+            <main id="tab-input-data" class="p-6 max-w-2xl w-full mx-auto tab-content hidden">
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Form Inventarisasi & Kondisi Alat</h3>
+                    <p class="text-xs text-gray-500 mb-6">Sesuai SOP Pengecekan Sistem Manajemen Laboratorium.</p>
+                    
+                    <form id="form-alat" onsubmit="simpanAlatBaru(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Nama Peralatan / Mesin</label>
+                            <input type="text" id="nama_alat" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-500" placeholder="Contoh: Mesin Bubut Konvensional">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Kategori Kelompok Lab</label>
+                                <select id="kategori_lab" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-500">
+                                    <option>Lab Produksi & Manufaktur</option>
+                                    <option>Lab CNC & Otomasi</option>
+                                    <option>Lab Fluida & Hidrolik</option>
+                                    <option>Lab Konversi Energi & Listrik</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Kondisi Awal Alat</label>
+                                <select id="kondisi_alat" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-500">
+                                    <option value="Baik">Normal / Berfungsi Baik</option>
+                                    <option value="Perbaikan">Rusak Ringan / Butuh Kalibrasi</option>
+                                    <option value="Rusak">Rusak Berat / Mati Total</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Nama Teknisi / Pemeriksa</label>
+                            <input type="text" id="teknisi" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-teal-500" placeholder="Masukkan nama Anda">
+                        </div>
+                        <div class="pt-4 flex gap-2">
+                            <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm px-5 py-2.5 rounded-lg transition cursor-pointer w-full">
+                                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan ke Sistem Cloud
+                            </button>
+                            <button type="button" onclick="switchTab('dashboard')" class="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm px-4 py-2 rounded-lg transition cursor-pointer">Batal</button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+
+            <main id="tab-sop-log" class="p-6 space-y-6 max-w-7xl w-full mx-auto tab-content hidden">
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Prosedur Jadwal Pemeliharaan Alat</h3>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-teal-50 border-l-4 border-teal-600 rounded-r-lg">
+                            <h4 class="font-bold text-sm text-teal-900 uppercase">1. Monitoring Harian (Pengecekan Visual)</h4>
+                            <p class="text-xs text-teal-800 mt-1">Dilakukan sebelum/sesudah praktikum menggunakan kartu kontrol fisik atau scan QR.</p>
+                        </div>
+                        <div class="p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
+                            <h4 class="font-bold text-sm text-amber-900 uppercase">2. Pemeliharaan Korektif (Jika Terjadi Kerusakan)</h4>
+                            <p class="text-xs text-amber-800 mt-1">Jika status diubah menjadi "Rusak Berat", isolasi alat, tempel papan peringatan, dan jalankan perbaikan komponen internal.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+        </div>
+    </div>
+
+    <script>
+        // Logika Autentikasi Form Login
+        function prosesLogin(event) {
+            event.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const errorBox = document.getElementById('error-login');
+            const halamanDashboard = document.getElementById('halaman-dashboard');
+
+            if (user === 'admin' && pass === 'pvte2024') {
+                // Sembunyikan halaman login
+                document.getElementById('halaman-login').classList.add('hidden');
+                
+                // Tampilkan halaman dashboard utama
+                halamanDashboard.classList.remove('opacity-0', 'pointer-events-none');
+                halamanDashboard.classList.add('opacity-100');
+                
+                // Set status login di session
+                sessionStorage.setItem('isLoggedIn', 'true');
+                
+                showToast("Selamat Datang! Login Berhasil.");
+                muatUlangSistem();
+            } else {
+                errorBox.classList.remove('hidden');
+                document.getElementById('form-login').reset();
+            }
+        }
+
+        // Logika Keluar Sistem (Logout)
+        function prosesLogout() {
+            sessionStorage.removeItem('isLoggedIn');
+            location.reload(); // Refresh halaman untuk kembali ke menu login awal
+        }
+
+        // Basis Data Default Awal
+        let dataDefault = [
+            { id: "QR-UNTIRTA-001", nama: "Mesin Bubut Konvensional Celos", kategori: "Lab Produksi & Manufaktur", tanggal: "07 Juni 2026", kondisi: "Baik", teknisi: "Meyrizka A." },
+            { id: "QR-UNTIRTA-002", nama: "Mesin Milling CNC 3-Axis", kategori: "Lab CNC & Otomasi", tanggal: "07 Juni 2026", kondisi: "Perbaikan", teknisi: "Daffa Abdillah" },
+            { id: "QR-UNTIRTA-003", nama: "Transformator Daya 3-Fasa", kategori: "Lab Konversi Energi & Listrik", tanggal: "06 Juni 2026", kondisi: "Rusak", teknisi: "Muhammad Azmi" }
+        ];
+
+        if (!localStorage.getItem('database_lab')) {
+            localStorage.setItem('database_lab', JSON.stringify(dataDefault));
+        }
+
+        let chartB, chartD;
+
+        // Berpindah tab konten dashboard
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('bg-teal-600', 'text-white');
+                btn.classList.add('text-gray-300', 'hover:bg-slate-800');
+            });
+            const activeBtn = document.getElementById('nav-' + tabId);
+            activeBtn.classList.remove('text-gray-300', 'hover:bg-slate-800');
+            activeBtn.classList.add('bg-teal-600', 'text-white');
+
+            const titles = { 'dashboard': 'Dashboard Utama', 'input-data': 'Form Input Alat Baru', 'sop-log': 'Jadwal Pemeliharaan & SOP' };
+            document.getElementById('page-title').innerText = titles[tabId];
+
+            if(tabId === 'dashboard') muatUlangSistem();
+        }
+
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = text;
+            toast.classList.remove('translate-x-80');
+            setTimeout(() => { toast.classList.add('translate-x-80'); }, 3000);
+        }
+
+        function muatUlangSistem() {
+            let db = JSON.parse(localStorage.getItem('database_lab'));
+            
+            let total = db.length;
+            let baik = db.filter(a => a.kondisi === 'Baik').length;
+            let perbaikan = db.filter(a => a.kondisi === 'Perbaikan').length;
+            let rusak = db.filter(a => a.kondisi === 'Rusak').length;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-baik').innerText = baik;
+            document.getElementById('stat-perbaikan').innerText = perbaikan;
+            document.getElementById('stat-rusak').innerText = rusak;
+
+            const tbody = document.getElementById('tabel-alat');
+            tbody.innerHTML = "";
+            
+            db.forEach((item, index) => {
+                let badgeColor = item.kondisi === 'Baik' ? 'bg-emerald-50 text-emerald-700' : (item.kondisi === 'Perbaikan' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700');
+                let statusLabel = item.kondisi === 'Baik' ? 'Normal / Baik' : (item.kondisi === 'Perbaikan' ? 'Perlu Kalibrasi' : 'Rusak Berat');
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50/70 transition">
+                        <td class="px-6 py-4 font-mono text-xs text-teal-600 font-semibold">${item.id}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900">${item.nama}</td>
+                        <td class="px-6 py-4 text-xs">${item.kategori}</td>
+                        <td class="px-6 py-4 text-xs">${item.tanggal}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">
+                                <i class="fa-solid fa-circle text-[6px]"></i> ${statusLabel}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="hapusData(${index})" class="text-rose-600 hover:text-rose-900 text-xs font-bold transition cursor-pointer"><i class="fa-solid fa-trash"></i> Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            updateCharts(baik, perbaikan, rusak);
+        }
+
+        function simpanAlatBaru(event) {
+            event.preventDefault();
+            let db = JSON.parse(localStorage.getItem('database_lab'));
+            
+            let idAcak = "QR-UNTIRTA-" + String(Math.floor(100 + Math.random() * 900));
+            let hariIni = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            let objekBaru = {
+                id: idAcak,
+                nama: document.getElementById('nama_alat').value,
+                kategori: document.getElementById('kategori_lab').value,
+                tanggal: hariIni,
+                kondisi: document.getElementById('kondisi_alat').value,
+                teknisi: document.getElementById('teknisi').value
+            };
+
+            db.unshift(objekBaru);
+            localStorage.setItem('database_lab', JSON.stringify(db));
+            
+            document.getElementById('form-alat').reset();
+            showToast("Alat berhasil disimpan ke sistem monitoring!");
+            switchTab('dashboard');
+        }
+
+        function hapusData(index) {
+            if(confirm("Apakah Anda yakin ingin menghapus data log peralatan ini?")) {
+                let db = JSON.parse(localStorage.getItem('database_lab'));
+                db.splice(index, 1);
+                localStorage.setItem('database_lab', JSON.stringify(db));
+                showToast("Data log alat berhasil dihapus!");
+                muatUlangSistem();
+            }
+        }
+
+        function updateCharts(b, p, r) {
+            if (chartB) chartB.destroy();
+            if (chartD) chartD.destroy();
+
+            const ctxB = document.getElementById('chartBatang').getContext('2d');
+            chartB = new Chart(ctxB, {
+                type: 'bar',
+                data: {
+                    labels: ['Kondisi Baik', 'Perlu Kalibrasi', 'Rusak Berat'],
+                    datasets: [{
+                        data: [b, p, r],
+                        backgroundColor: ['#0d9488', '#f59e0b', '#e11d48'],
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            const ctxD = document.getElementById('chartDonat').getContext('2d');
+            chartD = new Chart(ctxD, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Baik', 'Perbaikan', 'Rusak'],
+                    datasets: [{
+                        data: [b, p, r],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
+            });
+        }
+
+        // Jalankan Pengecekan Status Login Saat Awal Muat
+        window.onload = function() {
+            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                document.getElementById('halaman-login').classList.add('hidden');
+                const hd = document.getElementById('halaman-dashboard');
+                hd.classList.remove('opacity-0', 'pointer-events-none');
+                hd.classList.add('opacity-100');
+                muatUlangSistem();
+            }
+        };
+    </script>
+</body>
+</html>
