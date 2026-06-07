@@ -36,7 +36,7 @@
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                             <i class="fa-solid fa-user text-sm"></i>
                         </span>
-                        <input type="text" id="username" required class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition" placeholder="Masukkan username">
+                        <input type="text" id="username" required class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition" placeholder="admin">
                     </div>
                 </div>
                 <div>
@@ -45,7 +45,7 @@
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                             <i class="fa-solid fa-lock text-sm"></i>
                         </span>
-                        <input type="password" id="password" required class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition" placeholder="••••••••">
+                        <input type="password" id="password" required class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition" placeholder="pvte2024">
                     </div>
                 </div>
                 <div class="pt-2">
@@ -161,7 +161,8 @@
                                     <th class="px-6 py-3">Kode QR / ID</th>
                                     <th class="px-6 py-3">Nama Alat</th>
                                     <th class="px-6 py-3">Kategori Lab</th>
-                                    <th class="px-6 py-3">Tanggal Input</th>
+                                    <th class="px-6 py-3">Pemeriksa (Teknisi)</th>
+                                    <th class="px-6 py-3">Tanggal Cek</th>
                                     <th class="px-6 py-3">Kondisi</th>
                                     <th class="px-6 py-3 text-center">Aksi</th>
                                 </tr>
@@ -236,229 +237,217 @@
     </div>
 
     <script>
-        // GANTI TAUTAN INI dengan URL Realtime Database milik Anda dari Firebase (Pastikan diakhiri dengan /data-alat.json)
-const FIREBASE_URL = "https://monitoring-lab-kel8-default-rtdb.asia-southeast1.firebasedatabase.app/data-alat.json";
+        // URL DATABASE PUSAT MILIK ANDA
+        const FIREBASE_URL = "https://monitoring-lab-kel8-default-rtdb.asia-southeast1.firebasedatabase.app/data-alat.json";
 
-let chartB, chartD;
+        let chartB, chartD;
 
-// Fungsi berpindah halaman/tab navigasi
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    document.getElementById('tab-' + tabId).classList.remove('hidden');
-    
-    document.querySelectorAll('nav button').forEach(btn => {
-        btn.classList.remove('bg-teal-600', 'text-white');
-        btn.classList.add('text-gray-300', 'hover:bg-slate-800');
-    });
-    const activeBtn = document.getElementById('nav-' + tabId);
-    activeBtn.classList.remove('text-gray-300', 'hover:bg-slate-800');
-    activeBtn.classList.add('bg-teal-600', 'text-white');
+        // Berpindah tab konten dashboard
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('bg-teal-600', 'text-white');
+                btn.classList.add('text-gray-300', 'hover:bg-slate-800');
+            });
+            const activeBtn = document.getElementById('nav-' + tabId);
+            activeBtn.classList.remove('text-gray-300', 'hover:bg-slate-800');
+            activeBtn.classList.add('bg-teal-600', 'text-white');
 
-    const titles = { 'dashboard': 'Dashboard Utama', 'input-data': 'Form Input Alat Baru', 'sop-log': 'Jadwal Pemeliharaan & SOP' };
-    document.getElementById('page-title').innerText = titles[tabId];
+            const titles = { 'dashboard': 'Dashboard Utama', 'input-data': 'Form Input Alat Baru', 'sop-log': 'Jadwal Pemeliharaan & SOP' };
+            document.getElementById('page-title').innerText = titles[tabId];
 
-    if(tabId === 'dashboard') ambilDataDariFirebase();
-}
-
-function showToast(text) {
-    const toast = document.getElementById('toast');
-    document.getElementById('toastMsg').innerText = text;
-    toast.classList.remove('translate-x-80');
-    setTimeout(() => { toast.classList.add('translate-x-80'); }, 3000);
-}
-
-// ==========================================
-// SEGMEN BARU: PENGAMBILAN DATA REAL-TIME ONLINE
-// ==========================================
-
-// Fungsi untuk mengambil data secara online dari Firebase
-async function ambilDataDariFirebase() {
-    try {
-        const response = await fetch(FIREBASE_URL);
-        const dataCloud = await response.json();
-        
-        let db = [];
-        // Mengubah format objek Firebase menjadi Array agar bisa dibaca tabel
-        if (dataCloud) {
-            db = Object.keys(dataCloud).map(key => ({
-                firebaseKey: key, // disimpan untuk keperluan hapus data
-                ...dataCloud[key]
-            }));
+            if(tabId === 'dashboard') ambilDataDariFirebase();
         }
 
-        // Kalkulasi Statistik Metrik
-        let total = db.length;
-        let baik = db.filter(a => a.kondisi === 'Baik').length;
-        let perbaikan = db.filter(a => a.kondisi === 'Perbaikan').length;
-        let rusak = db.filter(a => a.kondisi === 'Rusak').length;
-
-        document.getElementById('stat-total').innerText = total;
-        document.getElementById('stat-baik').innerText = baik;
-        document.getElementById('stat-perbaikan').innerText = perbaikan;
-        document.getElementById('stat-rusak').innerText = rusak;
-
-        // Render isi baris tabel secara dinamis
-        const tbody = document.getElementById('tabel-alat');
-        tbody.innerHTML = "";
-        
-        if (db.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400 text-xs">Belum ada data alat online. Silakan input baru.</td></tr>`;
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = text;
+            toast.classList.remove('translate-x-80');
+            setTimeout(() => { toast.classList.add('translate-x-80'); }, 3000);
         }
 
-        db.forEach((item) => {
-            let badgeColor = item.kondisi === 'Baik' ? 'bg-emerald-50 text-emerald-700' : (item.kondisi === 'Perbaikan' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700');
-            let statusLabel = item.kondisi === 'Baik' ? 'Normal / Baik' : (item.kondisi === 'Perbaikan' ? 'Perlu Kalibrasi' : 'Rusak Berat');
+        // Mengambil data terpusat dari Firebase Cloud Server
+        async function ambilDataDariFirebase() {
+            try {
+                const response = await fetch(FIREBASE_URL);
+                const dataCloud = await response.json();
+                
+                let db = [];
+                if (dataCloud) {
+                    db = Object.keys(dataCloud).map(key => ({
+                        firebaseKey: key,
+                        ...dataCloud[key]
+                    }));
+                }
 
-            tbody.innerHTML += `
-                <tr class="hover:bg-gray-50/70 transition">
-                    <td class="px-6 py-4 font-mono text-xs text-teal-600 font-semibold">${item.id}</td>
-                    <td class="px-6 py-4 font-medium text-gray-900">${item.nama}</td>
-                    <td class="px-6 py-4 text-xs">${item.kategori}</td>
-                    <td class="px-6 py-4 text-xs">${item.tanggal}</td>
-                    <td class="px-6 py-4">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">
-                            <i class="fa-solid fa-circle text-[6px]"></i> ${statusLabel}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                        <button onclick="hapusDataOnline('${item.firebaseKey}')" class="text-rose-600 hover:text-rose-900 text-xs font-bold transition cursor-pointer"><i class="fa-solid fa-trash"></i> Hapus</button>
-                    </td>
-                </tr>
-            `;
-        });
+                let total = db.length;
+                let baik = db.filter(a => a.kondisi === 'Baik').length;
+                let perbaikan = db.filter(a => a.kondisi === 'Perbaikan').length;
+                let rusak = db.filter(a => a.kondisi === 'Rusak').length;
 
-        updateCharts(baik, perbaikan, rusak);
-    } catch (error) {
-        console.error("Gagal memuat data Cloud:", error);
-    }
-}
+                document.getElementById('stat-total').innerText = total;
+                document.getElementById('stat-baik').innerText = baik;
+                document.getElementById('stat-perbaikan').innerText = perbaikan;
+                document.getElementById('stat-rusak').innerText = rusak;
 
-// Fungsi mengirim data baru ke database Firebase (Bisa diisi siapa saja di internet)
-async function simpanAlatBaru(event) {
-    event.preventDefault();
-    
-    let idAcak = "QR-UNTIRTA-" + String(Math.floor(100 + Math.random() * 900));
-    let hariIni = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                const tbody = document.getElementById('tabel-alat');
+                tbody.innerHTML = "";
+                
+                if (db.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-gray-400 text-xs">Belum ada data di server online. Silakan klik tambah data baru.</td></tr>`;
+                }
 
-    let objekBaru = {
-        id: idAcak,
-        nama: document.getElementById('nama_alat').value,
-        kategori: document.getElementById('kategori_lab').value,
-        tanggal: hariIni,
-        kondisi: document.getElementById('kondisi_alat').value,
-        teknisi: document.getElementById('teknisi').value
-    };
+                db.forEach((item) => {
+                    let badgeColor = item.kondisi === 'Baik' ? 'bg-emerald-50 text-emerald-700' : (item.kondisi === 'Perbaikan' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700');
+                    let statusLabel = item.kondisi === 'Baik' ? 'Normal / Baik' : (item.kondisi === 'Perbaikan' ? 'Perlu Kalibrasi' : 'Rusak Berat');
+                    let namaPemeriksa = item.teknisi ? item.teknisi : "Anonim";
 
-    try {
-        // Mengirim data menggunakan HTTP POST ke Firebase Cloud
-        await fetch(FIREBASE_URL, {
-            method: 'POST',
-            body: JSON.stringify(objekBaru),
-            headers: { 'Content-Type': 'application/json' }
-        });
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50/70 transition">
+                            <td class="px-6 py-4 font-mono text-xs text-teal-600 font-semibold">${item.id}</td>
+                            <td class="px-6 py-4 font-medium text-gray-900">${item.nama}</td>
+                            <td class="px-6 py-4 text-xs">${item.kategori}</td>
+                            <td class="px-6 py-4 text-xs font-semibold text-slate-700">${namaPemeriksa}</td>
+                            <td class="px-6 py-4 text-xs">${item.tanggal}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> ${statusLabel}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="removeDataOnline('${item.firebaseKey}')" class="text-rose-600 hover:text-rose-900 text-xs font-bold transition cursor-pointer"><i class="fa-solid fa-trash"></i> Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
 
-        document.getElementById('form-alat').reset();
-        showToast("Alat berhasil disimpan ke Cloud database online!");
-        switchTab('dashboard');
-    } catch (error) {
-        alert("Gagal menyimpan ke cloud server. Periksa koneksi internet.");
-    }
-}
-
-// Fungsi menghapus data dari server Firebase secara online
-async function hapusDataOnline(firebaseKey) {
-    if(confirm("Apakah Anda yakin ingin menghapus data log dari database online ini?")) {
-        // Ganti URL endpoint langsung mengarah ke id data kunci di firebase
-        const URL_HAPUS = FIREBASE_URL.replace("data-alat.json", `data-alat/${firebaseKey}.json`);
-        
-        try {
-            await fetch(URL_HAPUS, { method: 'DELETE' });
-            showToast("Data online berhasil dihapus!");
-            ambilDataDariFirebase();
-        } catch (error) {
-            alert("Gagal menghapus data di server.");
+                updateCharts(baik, perbaikan, rusak);
+            } catch (error) {
+                console.error("Koneksi Firebase terputus:", error);
+            }
         }
-    }
-}
 
-// ==========================================
-// SEGMEN GRAFIK DIAGRAM (TETAP SAMA)
-// ==========================================
-function updateCharts(b, p, r) {
-    if (chartB) chartB.destroy();
-    if (chartD) chartD.destroy();
+        // Menyimpan data alat baru ke Firebase Cloud
+        async function simpanAlatBaru(event) {
+            event.preventDefault();
+            
+            let idAcak = "QR-UNTIRTA-" + String(Math.floor(100 + Math.random() * 900));
+            let hariIni = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    const ctxB = document.getElementById('chartBatang').getContext('2d');
-    chartB = new Chart(ctxB, {
-        type: 'bar',
-        data: {
-            labels: ['Kondisi Baik', 'Perlu Kalibrasi', 'Rusak Berat'],
-            datasets: [{
-                data: [b, p, r],
-                backgroundColor: ['#0d9488', '#f59e0b', '#e11d48'],
-                borderRadius: 6
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
+            let objekBaru = {
+                id: idAcak,
+                nama: document.getElementById('nama_alat').value,
+                kategori: document.getElementById('kategori_lab').value,
+                tanggal: hariIni,
+                kondisi: document.getElementById('kondisi_alat').value,
+                teknisi: document.getElementById('teknisi').value
+            };
 
-    const ctxD = document.getElementById('chartDonat').getContext('2d');
-    chartD = new Chart(ctxD, {
-        type: 'doughnut',
-        data: {
-            labels: ['Baik', 'Perbaikan', 'Rusak'],
-            datasets: [{
-                data: [b, p, r],
-                backgroundColor: ['#10b981', '#f59e0b', '#f43f5e']
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
-    });
-}
+            try {
+                await fetch(FIREBASE_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(objekBaru),
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-// Logika Autentikasi Form Login Bawaan
-function prosesLogin(event) {
-    event.preventDefault();
-    const user = document.getElementById('username').value;
-    const pass = document.getElementById('password').value;
-    const errorBox = document.getElementById('error-login');
-    const halamanDashboard = document.getElementById('halaman-dashboard');
-
-    if (user === 'admin' && pass === 'pvte2024') {
-        document.getElementById('halaman-login').classList.add('hidden');
-        halamanDashboard.classList.remove('opacity-0', 'pointer-events-none');
-        halamanDashboard.classList.add('opacity-100');
-        sessionStorage.setItem('isLoggedIn', 'true');
-        showToast("Selamat Datang! Login Berhasil.");
-        ambilDataDariFirebase();
-    } else {
-        errorBox.classList.remove('hidden');
-        document.getElementById('form-login').reset();
-    }
-}
-
-function prosesLogout() {
-    sessionStorage.removeItem('isLoggedIn');
-    location.reload();
-}
-
-window.onload = function() {
-    if (sessionStorage.getItem('isLoggedIn') === 'true') {
-        document.getElementById('halaman-login').classList.add('hidden');
-        const hd = document.getElementById('halaman-dashboard');
-        hd.classList.remove('opacity-0', 'pointer-events-none');
-        hd.classList.add('opacity-100');
-        ambilDataDariFirebase();
-    }
-    
-    // SISTEM AUTO-REFRESH: Otomatis mengambil data baru dari Cloud setiap 5 detik
-    // Ini membuat layar pengguna lain terupdate otomatis tanpa reload halaman manual
-    setInterval(() => {
-        if (sessionStorage.getItem('isLoggedIn') === 'true') {
-            ambilDataDariFirebase();
+                document.getElementById('form-alat').reset();
+                showToast("Alat sukses dikirim ke database online!");
+                switchTab('dashboard');
+            } catch (error) {
+                alert("Gagal terhubung dengan server awan.");
+            }
         }
-    }, 5000);
-};
+
+        // Menghapus data terpilih dari Cloud Server
+        async function removeDataOnline(firebaseKey) {
+            if(confirm("Apakah Anda yakin ingin menghapus data log dari database online?")) {
+                const URL_HAPUS = FIREBASE_URL.replace("data-alat.json", `data-alat/${firebaseKey}.json`);
+                try {
+                    await fetch(URL_HAPUS, { method: 'DELETE' });
+                    showToast("Data online berhasil terhapus!");
+                    ambilDataDariFirebase();
+                } catch (error) {
+                    alert("Gagal menghapus data dari server.");
+                }
+            }
+        }
+
+        function updateCharts(b, p, r) {
+            if (chartB) chartB.destroy();
+            if (chartD) chartD.destroy();
+
+            const ctxB = document.getElementById('chartBatang').getContext('2d');
+            chartB = new Chart(ctxB, {
+                type: 'bar',
+                data: {
+                    labels: ['Kondisi Baik', 'Perlu Kalibrasi', 'Rusak Berat'],
+                    datasets: [{
+                        data: [b, p, r],
+                        backgroundColor: ['#0d9488', '#f59e0b', '#e11d48'],
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            const ctxD = document.getElementById('chartDonat').getContext('2d');
+            chartD = new Chart(ctxD, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Baik', 'Perbaikan', 'Rusak'],
+                    datasets: [{
+                        data: [b, p, r],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
+            });
+        }
+
+        // Autentikasi Form Login
+        function prosesLogin(event) {
+            event.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const errorBox = document.getElementById('error-login');
+            const halamanDashboard = document.getElementById('halaman-dashboard');
+
+            if (user === 'admin' && pass === 'pvte2024') {
+                document.getElementById('halaman-login').classList.add('hidden');
+                halamanDashboard.classList.remove('opacity-0', 'pointer-events-none');
+                halamanDashboard.classList.add('opacity-100');
+                sessionStorage.setItem('isLoggedIn', 'true');
+                showToast("Selamat Datang! Login Berhasil.");
+                ambilDataDariFirebase();
+            } else {
+                errorBox.classList.remove('hidden');
+                document.getElementById('form-login').reset();
+            }
+        }
+
+        function prosesLogout() {
+            sessionStorage.removeItem('isLoggedIn');
+            location.reload();
+        }
+
+        window.onload = function() {
+            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                document.getElementById('halaman-login').classList.add('hidden');
+                const hd = document.getElementById('halaman-dashboard');
+                hd.classList.remove('opacity-0', 'pointer-events-none');
+                hd.classList.add('opacity-100');
+                ambilDataDariFirebase();
+            }
+            
+            // SISTEM AUTO-SINKRONISASI: Otomatis sinkronisasi data antar-perangkat tiap 5 detik
+            setInterval(() => {
+                if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                    ambilDataDariFirebase();
+                }
+            }, 5000);
+        };
     </script>
 </body>
 </html>
